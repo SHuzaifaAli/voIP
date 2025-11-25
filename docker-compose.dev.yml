@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Development services
+  signaling:
+    build:
+      context: ./services/signaling
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - JWT_SECRET=dev-secret-key
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+    depends_on:
+      - redis
+    volumes:
+      - ./services/signaling/src:/app/src
+      - ./services/signaling/logs:/app/logs
+    command: npm run dev
+    restart: unless-stopped
+
+  web-client:
+    build:
+      context: ./web/react-client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_WS_URL=http://localhost:3001
+    depends_on:
+      - signaling
+    volumes:
+      - ./web/react-client/src:/app/src
+      - ./web/react-client/public:/app/public
+    command: npm run dev
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # TURN/STUN server (coturn)
+  coturn:
+    image: coturn/coturn:latest
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49152-65535:49152-65535/udp"
+    environment:
+      - TURN_USERNAME=user
+      - TURN_PASSWORD=password
+    volumes:
+      - ./infra/coturn/turnserver.conf:/etc/coturn/turnserver.conf
+    restart: unless-stopped
+
+  # PostgreSQL for production data
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=callstack
+      - POSTGRES_USER=callstack
+      - POSTGRES_PASSWORD=callstack123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:

@@ -1,0 +1,69 @@
+{{- if .Values.monitoring.prometheus.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "callstack.fullname" . }}-prometheus
+  labels:
+    {{- include "callstack.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/instance: {{ include "callstack.fullname" . }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "callstack.fullname" . }}-prometheus
+  labels:
+    {{- include "callstack.labels" . | nindent 4 }}
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/instance: {{ include "callstack.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+      app.kubernetes.io/instance: {{ include "callstack.fullname" . }}
+  template:
+    metadata:
+      labels:
+        {{- include "callstack.labels" . | nindent 8 }}
+        app.kubernetes.io/name: prometheus
+        app.kubernetes.io/instance: {{ include "callstack.fullname" . }}
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest
+          ports:
+            - containerPort: 9090
+          args:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus/'
+            - '--web.console.libraries=/etc/prometheus/console_libraries'
+            - '--web.console.templates=/etc/prometheus/consoles'
+          volumeMounts:
+            - name: prometheus-config-volume
+              mountPath: /etc/prometheus/
+            - name: prometheus-storage-volume
+              mountPath: /prometheus/
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1000Mi
+            limits:
+              cpu: 1000m
+              memory: 2000Mi
+      volumes:
+        - name: prometheus-config-volume
+          configMap:
+            name: {{ include "callstack.fullname" . }}-prometheus-config
+        - name: prometheus-storage-volume
+          persistentVolumeClaim:
+            claimName: {{ include "callstack.fullname" . }}-prometheus-pvc
+{{- end }}

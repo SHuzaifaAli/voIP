@@ -1,0 +1,27 @@
+apiVersion: v2
+name: callstack
+description: A Helm chart for CallStack VoIP platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - voip
+  - webrtc
+  - sip
+  - calling
+  - communication
+home: https://github.com/yourorg/callstack
+sources:
+  - https://github.com/yourorg/callstack
+maintainers:
+  - name: CallStack Team
+    email: team@callstack.com
+dependencies:
+  - name: postgresql
+    version: 12.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 17.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

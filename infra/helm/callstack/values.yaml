@@ -1,0 +1,187 @@
+# Default values for callstack.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 3
+
+image:
+  repository: ghcr.io/yourorg/callstack
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: callstack.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: callstack-tls
+
+resources:
+  {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Database configuration
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "callstack123"
+    database: "callstack"
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+
+# Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+      persistence:
+        enabled: true
+        size: 8Gi
+
+# Application configuration
+config:
+  environment: "production"
+  logLevel: "info"
+  allowedOrigins: "https://callstack.example.com"
+  
+  # Database
+  databaseUrl: "postgresql://callstack:callstack123@postgresql:5432/callstack"
+  
+  # Redis
+  redisUrl: "redis://redis:6379"
+  
+  # JWT
+  jwtSecret: "your-super-secret-jwt-key-change-this-in-production"
+  
+  # SIP
+  sipDomain: "callstack.example.com"
+  sipServer: "sip.callstack.example.com"
+  sipPort: "5060"
+  
+  # MediaSoup
+  mediasoupWorkers: 4
+  mediasoupRtcMinPort: 10000
+  mediasoupRtcMaxPort: 20000
+  mediasoupAnnouncedIp: ""
+  
+  # TURN/STUN
+  turnServer: "turn.callstack.example.com"
+  turnPort: "3478"
+  turnUsername: "turnuser"
+  turnPassword: "turnpass"
+  
+  # Billing
+  stripeSecretKey: ""
+  stripeWebhookSecret: ""
+  smtpHost: ""
+  smtpPort: "587"
+  smtpUser: ""
+  smtpPass: ""
+  smtpFrom: "billing@callstack.com"
+  
+  # Monitoring
+  prometheusEnabled: true
+  grafanaEnabled: true
+
+# Monitoring configuration
+monitoring:
+  prometheus:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 9090
+    persistence:
+      enabled: true
+      size: 20Gi
+  
+  grafana:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 3000
+    persistence:
+      enabled: true
+      size: 10Gi
+    adminPassword: "admin123"
+
+# Security configuration
+security:
+  networkPolicy:
+    enabled: true
+  podSecurityPolicy:
+    enabled: true
+  rbac:
+    enabled: true
+
+# Backup configuration
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+  retention: "30d"
+  storage:
+    type: "s3"
+    bucket: "callstack-backups"
+    region: "us-east-1"
+    accessKey: ""
+    secretKey: ""

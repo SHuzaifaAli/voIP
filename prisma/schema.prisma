@@ -1,0 +1,169 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User management
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  password    String
+  sipUsername String?  @unique
+  sipPassword String?
+  isActive    Boolean  @default(true)
+  role        UserRole @default(USER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  initiatedCalls Call[] @relation("InitiatedCalls")
+  receivedCalls  Call[] @relation("ReceivedCalls")
+  cdrs           CallDetailRecord[]
+
+  @@map("users")
+}
+
+// Call session management
+model Call {
+  id              String     @id @default(cuid())
+  callerId        String
+  calleeId        String
+  startTime       DateTime   @default(now())
+  endTime         DateTime?
+  duration        Int?       // in seconds
+  status          CallStatus @default(INITIATED)
+  callType        CallType   @default(AUDIO)
+  direction       CallDirection @default(OUTBOUND)
+  mediaServerId   String?    // mediasoup worker ID
+  qualityScore    Float?     // call quality score 0-1
+  recordingUrl    String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Relations
+  caller    User            @relation("InitiatedCalls", fields: [callerId], references: [id])
+  callee    User            @relation("ReceivedCalls", fields: [calleeId], references: [id])
+  cdr       CallDetailRecord?
+
+  @@map("calls")
+}
+
+// Call Detail Records for billing and analytics
+model CallDetailRecord {
+  id               String   @id @default(cuid())
+  callId           String   @unique
+  userId           String
+  callerNumber     String
+  calleeNumber     String
+  startTime        DateTime
+  endTime          DateTime
+  duration         Int      // in seconds
+  cost             Decimal? // call cost in currency units
+  currency         String   @default("USD")
+  callType         CallType
+  direction        CallDirection
+  mediaQuality     Json?    // RTP statistics (packet loss, jitter, etc.)
+  signalingEvents  Json?    // SIP/WebRTC signaling events
+  createdAt        DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+  call Call @relation(fields: [callId], references: [id])
+
+  @@map("call_detail_records")
+}
+
+// SIP trunk configuration
+model SipTrunk {
+  id           String     @id @default(cuid())
+  name         String
+  host         String
+  port         Int        @default(5060)
+  protocol     String     @default("udp")
+  username     String
+  password     String
+  isActive     Boolean    @default(true)
+  maxConcurrentCalls Int  @default(100)
+  currentCalls Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("sip_trunks")
+}
+
+// Media server (mediasoup) configuration
+model MediaServer {
+  id              String   @id @default(cuid())
+  name            String
+  host            String
+  port            Int      @default(4000)
+  secret          String
+  maxWorkers      Int      @default(4)
+  currentWorkers  Int      @default(0)
+  isActive        Boolean  @default(true)
+  region          String?  // geographic region
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("media_servers")
+}
+
+// Phone number management
+model PhoneNumber {
+  id           String           @id @default(cuid())
+  number       String           @unique
+  country      String
+  userId       String?          // assigned user
+  trunkId      String?          // associated SIP trunk
+  isActive     Boolean          @default(true)
+  capabilities PhoneNumberCap[] // array of capabilities
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@map("phone_numbers")
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+  OPERATOR
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  CONNECTED
+  ENDED
+  FAILED
+  MISSED
+}
+
+enum CallType {
+  AUDIO
+  VIDEO
+  SCREEN_SHARE
+}
+
+enum CallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum PhoneNumberCap {
+  VOICE
+  SMS
+  MMS
+  FAX
+}

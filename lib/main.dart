@@ -4,6 +4,8 @@ import 'injection_container.dart' as di;
 import 'presentation/bloc/auth_bloc.dart';
 import 'presentation/bloc/product_bloc.dart';
 import 'presentation/bloc/cart_bloc.dart';
+import 'presentation/bloc/shop_bloc.dart';
+import 'presentation/bloc/community_bloc.dart';
 import 'presentation/pages/login_page.dart';
 import 'presentation/pages/home_page.dart';
 import 'presentation/pages/cart_page.dart';
@@ -24,12 +26,22 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (_) => di.sl<AuthBloc>()),
         BlocProvider(create: (_) => di.sl<ProductBloc>()),
         BlocProvider(create: (_) => di.sl<CartBloc>()),
+        BlocProvider(create: (_) => di.sl<ShopBloc>()),
+        BlocProvider(create: (_) => di.sl<CommunityBloc>()),
       ],
       child: MaterialApp(
         title: 'Flutter E-Commerce',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,
+          scaffoldBackgroundColor: Colors.grey[50],
+          appBarTheme: const AppBarTheme(
+            centerTitle: true,
+            elevation: 0,
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+          ),
         ),
         initialRoute: '/login',
         routes: {
